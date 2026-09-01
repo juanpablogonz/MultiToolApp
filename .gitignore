@@ -1,0 +1,26 @@
+# Dependencias
+node_modules/
+
+# Build / empaquetado
+out/
+release/
+dist/
+
+# TypeScript (info incremental de compilación)
+*.tsbuildinfo
+
+# Logs
+*.log
+npm-debug.log*
+
+# Variables de entorno / secretos
+.env
+.env.*
+!.env.example
+
+# Editor / SO
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+desktop.ini
