@@ -20,13 +20,24 @@ function getBackupPath(): string {
 
 let cache: AppConfig | null = null
 
+// Rellena con los valores por defecto los campos que falten en un config.json
+// guardado por una versión anterior de la app (ej: al agregar un módulo nuevo).
+function withMigrations(config: AppConfig): AppConfig {
+  const defaults = createDefaultConfig()
+  return {
+    ...defaults,
+    ...config,
+    terminalLauncher: config.terminalLauncher ?? defaults.terminalLauncher
+  }
+}
+
 export async function loadConfig(): Promise<AppConfig> {
   if (cache) return cache
 
   const configPath = getConfigPath()
   try {
     const raw = await fs.readFile(configPath, 'utf-8')
-    cache = JSON.parse(raw) as AppConfig
+    cache = withMigrations(JSON.parse(raw) as AppConfig)
     return cache
   } catch (err: unknown) {
     const nodeErr = err as NodeJS.ErrnoException

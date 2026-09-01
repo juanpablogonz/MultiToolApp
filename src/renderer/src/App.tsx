@@ -8,6 +8,7 @@ import { FormatterView } from './features/formatter/FormatterView'
 import { DiffView } from './features/diff/DiffView'
 import { ApiLauncherView } from './features/apiLauncher/ApiLauncherView'
 import { CSharpConverterView } from './features/csharpConverter/CSharpConverterView'
+import { TerminalLauncherView } from './features/terminalLauncher/TerminalLauncherView'
 
 // Las vistas quedan siempre montadas (solo se oculta la que no está activa) para que
 // el contenido que el usuario escribió (formateador, comparador, conversor) no se pierda al cambiar de menú.
@@ -28,6 +29,9 @@ function FeatureSwitch({ feature }: { feature: FeatureId }) {
       </div>
       <div className={`feature-slot${feature === 'apiLauncher' ? ' active' : ''}`}>
         <ApiLauncherView />
+      </div>
+      <div className={`feature-slot${feature === 'terminalLauncher' ? ' active' : ''}`}>
+        <TerminalLauncherView />
       </div>
     </>
   )

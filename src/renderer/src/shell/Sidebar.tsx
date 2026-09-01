@@ -9,6 +9,7 @@ import {
   IconMoon,
   IconPlay,
   IconSun,
+  IconTerminal,
   IconUpload
 } from './Icons'
 import { ConfirmDialog } from './ConfirmDialog'
@@ -24,7 +25,8 @@ const FEATURES: FeatureDef[] = [
   { id: 'formatter', label: 'Formatear', icon: <IconBraces size={17} /> },
   { id: 'diff', label: 'Comparar', icon: <IconCompare size={17} /> },
   { id: 'csharpConverter', label: 'JSON ⇄ C#', icon: <IconFileCode size={17} /> },
-  { id: 'apiLauncher', label: 'Lanzar APIs', icon: <IconPlay size={17} /> }
+  { id: 'apiLauncher', label: 'Lanzar APIs', icon: <IconPlay size={17} /> },
+  { id: 'terminalLauncher', label: 'Terminales', icon: <IconTerminal size={17} /> }
 ]
 
 interface Props {

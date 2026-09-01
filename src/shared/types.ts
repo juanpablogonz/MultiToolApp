@@ -14,6 +14,24 @@ export interface CopyProfile {
   botones: CopyButton[]
 }
 
+export type TerminalKind = 'gitbash' | 'cmd' | 'powershell'
+
+export interface TerminalButton {
+  id: string
+  nombre: string
+  ruta: string
+  consola: TerminalKind
+  comoAdministrador: boolean
+  actualizado: string // ISO date
+}
+
+export interface TerminalProfile {
+  id: string
+  nombre: string
+  principal: boolean
+  botones: TerminalButton[]
+}
+
 export type ApiEnvironment = 'develop' | 'testing' | 'production'
 
 export interface ApiEntry {
@@ -36,6 +54,9 @@ export interface AppConfig {
   apiLauncher: {
     apis: ApiEntry[]
   }
+  terminalLauncher: {
+    perfiles: TerminalProfile[]
+  }
 }
 
 export interface ApiRuntimeStatus {
@@ -53,7 +74,16 @@ export interface ApiLogLine {
   timestamp: string
 }
 
-export const FEATURE_IDS = ['copyPaste', 'formatter', 'diff', 'apiLauncher', 'csharpConverter'] as const
+export const FEATURE_IDS = [
+  'copyPaste',
+  'formatter',
+  'diff',
+  'apiLauncher',
+  'csharpConverter',
+  'terminalLauncher'
+] as const
 export type FeatureId = (typeof FEATURE_IDS)[number]
 
 export type BackupImportResult = { ok: true; config: AppConfig } | { ok: false; error: string }
+
+export type TerminalOpenResult = { ok: true } | { ok: false; error: string }

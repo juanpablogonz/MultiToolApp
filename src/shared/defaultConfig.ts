@@ -15,6 +15,16 @@ export function createDefaultConfig(): AppConfig {
     },
     apiLauncher: {
       apis: []
+    },
+    terminalLauncher: {
+      perfiles: [
+        {
+          id: crypto.randomUUID(),
+          nombre: 'Perfil 1',
+          principal: true,
+          botones: []
+        }
+      ]
     }
   }
 }

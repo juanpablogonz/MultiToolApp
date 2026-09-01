@@ -148,6 +148,24 @@ export function IconUpload(props: IconProps) {
   )
 }
 
+export function IconTerminal(props: IconProps) {
+  return (
+    <svg {...base(props)}>
+      <rect x="3" y="4.5" width="18" height="15" rx="2" />
+      <path d="M7 9.5 10.5 12 7 14.5" />
+      <path d="M12.5 14.5h4.5" />
+    </svg>
+  )
+}
+
+export function IconFolder(props: IconProps) {
+  return (
+    <svg {...base(props)}>
+      <path d="M3.5 6.5a1.5 1.5 0 0 1 1.5-1.5h4.4l1.8 2h8.3a1.5 1.5 0 0 1 1.5 1.5v9a1.5 1.5 0 0 1-1.5 1.5H5a1.5 1.5 0 0 1-1.5-1.5Z" />
+    </svg>
+  )
+}
+
 export function IconMoon(props: IconProps) {
   return (
     <svg {...base(props)} fill="currentColor" stroke="none">

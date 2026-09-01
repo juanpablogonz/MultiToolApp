@@ -1,5 +1,13 @@
 import { contextBridge, ipcRenderer } from 'electron'
-import type { AppConfig, ApiEntry, ApiLogLine, ApiRuntimeStatus, BackupImportResult } from '@shared/types'
+import type {
+  AppConfig,
+  ApiEntry,
+  ApiLogLine,
+  ApiRuntimeStatus,
+  BackupImportResult,
+  TerminalKind,
+  TerminalOpenResult
+} from '@shared/types'
 
 const api = {
   config: {
@@ -16,7 +24,12 @@ const api = {
   dialog: {
     pickCsproj: (): Promise<string | null> => ipcRenderer.invoke('dialog:pickCsproj'),
     pickJsonFile: (): Promise<{ path: string; content: string } | null> =>
-      ipcRenderer.invoke('dialog:pickJsonFile')
+      ipcRenderer.invoke('dialog:pickJsonFile'),
+    pickFolder: (): Promise<string | null> => ipcRenderer.invoke('dialog:pickFolder')
+  },
+  terminalLauncher: {
+    open: (path: string, kind: TerminalKind, comoAdministrador: boolean): Promise<TerminalOpenResult> =>
+      ipcRenderer.invoke('terminalLauncher:open', path, kind, comoAdministrador)
   },
   apiLauncher: {
     start: (entry: ApiEntry): Promise<ApiRuntimeStatus> => ipcRenderer.invoke('apiLauncher:start', entry),

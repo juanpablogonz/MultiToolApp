@@ -1,8 +1,10 @@
 import { ipcMain, BrowserWindow, clipboard, dialog } from 'electron'
 import { promises as fs } from 'fs'
-import type { AppConfig, ApiEntry, BackupImportResult } from '@shared/types'
+import type { AppConfig, ApiEntry, BackupImportResult, TerminalKind } from '@shared/types'
+import { createDefaultConfig } from '@shared/defaultConfig'
 import { loadConfig, saveConfig } from '../config/settingsService'
 import { startApi, stopApi, stopAll, getAllStatuses } from '../features/apiLauncher/processManager'
+import { openTerminalAt } from '../features/terminalLauncher/terminalRunner'
 
 function backupFileName(): string {
   const now = new Date()
@@ -19,6 +21,8 @@ function isValidAppConfig(data: unknown): data is AppConfig {
   if (typeof copyPaste !== 'object' || copyPaste === null || !Array.isArray(copyPaste.perfiles)) return false
   const apiLauncher = d.apiLauncher as Record<string, unknown> | undefined
   if (typeof apiLauncher !== 'object' || apiLauncher === null || !Array.isArray(apiLauncher.apis)) return false
+  // terminalLauncher es opcional acá: backups viejos (de antes de este módulo) no lo tienen,
+  // y se completa con el valor por defecto en el handler de import.
   return true
 }
 
@@ -90,7 +94,12 @@ export function registerIpcHandlers(getMainWindow: () => BrowserWindow | null): 
       return { ok: false, error: 'El archivo no tiene el formato de un backup de MultiToolApp.' }
     }
 
-    return { ok: true, config: data }
+    const config: AppConfig = {
+      ...data,
+      terminalLauncher: data.terminalLauncher ?? createDefaultConfig().terminalLauncher
+    }
+
+    return { ok: true, config }
   })
 
   ipcMain.handle('dialog:pickCsproj', async () => {
@@ -119,6 +128,23 @@ export function registerIpcHandlers(getMainWindow: () => BrowserWindow | null): 
       return null
     }
   })
+
+  ipcMain.handle('dialog:pickFolder', async () => {
+    const win = getMainWindow()
+    if (!win) return null
+    const result = await dialog.showOpenDialog(win, {
+      properties: ['openDirectory']
+    })
+    if (result.canceled || result.filePaths.length === 0) return null
+    return result.filePaths[0]
+  })
+
+  ipcMain.handle(
+    'terminalLauncher:open',
+    async (_event, path: string, kind: TerminalKind, comoAdministrador: boolean) => {
+      return openTerminalAt(path, kind, comoAdministrador)
+    }
+  )
 }
 
 export function shutdownAllProcesses(): void {
