@@ -7,6 +7,13 @@ on:
 permissions:
   contents: write
 
+# Si GitHub llega a disparar el evento push duplicado (pasa de vez en cuando), esto
+# hace que la segunda corrida espere a que termine la primera en vez de correr en
+# paralelo y pisarse (crear un release draft duplicado, pelear el push del bump, etc).
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: false
+
 jobs:
   release:
     if: "!contains(github.event.head_commit.message, '[skip ci]')"
