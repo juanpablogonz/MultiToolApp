@@ -2,17 +2,18 @@ import { useState, type ReactNode } from 'react'
 import type { AppConfig, BackupImportResult, FeatureId, Tema } from '@shared/types'
 import {
   IconBraces,
+  IconChevronLeft,
+  IconChevronRight,
   IconClipboard,
   IconCompare,
-  IconDownload,
   IconFileCode,
   IconMoon,
   IconPlay,
+  IconSettings,
   IconSun,
-  IconTerminal,
-  IconUpload
+  IconTerminal
 } from './Icons'
-import { ConfirmDialog } from './ConfirmDialog'
+import { SettingsModal } from './SettingsModal'
 
 interface FeatureDef {
   id: FeatureId
@@ -29,6 +30,16 @@ const FEATURES: FeatureDef[] = [
   { id: 'terminalLauncher', label: 'Terminales', icon: <IconTerminal size={17} /> }
 ]
 
+const COLLAPSED_KEY = 'multitoolapp.sidebarCollapsed'
+
+function loadCollapsed(): boolean {
+  try {
+    return localStorage.getItem(COLLAPSED_KEY) === '1'
+  } catch {
+    return false
+  }
+}
+
 interface Props {
   selected: FeatureId
   onSelect: (id: FeatureId) => void
@@ -40,33 +51,23 @@ interface Props {
 }
 
 export function Sidebar({ selected, onSelect, tema, onToggleTema, onExport, onImport, onApplyImport }: Props) {
-  const [exportDone, setExportDone] = useState(false)
-  const [pendingImport, setPendingImport] = useState<AppConfig | null>(null)
-  const [importError, setImportError] = useState<string | null>(null)
+  const [showSettings, setShowSettings] = useState(false)
+  const [collapsed, setCollapsed] = useState(loadCollapsed)
 
-  async function handleExport(): Promise<void> {
-    const path = await onExport()
-    if (!path) return
-    setExportDone(true)
-    setTimeout(() => setExportDone(false), 2000)
-  }
-
-  async function handleImport(): Promise<void> {
-    setImportError(null)
-    const result = await onImport()
-    if (!result) return
-    if (!result.ok) {
-      setImportError(result.error)
-      setTimeout(() => setImportError(null), 4000)
-      return
+  function toggleCollapsed(): void {
+    const next = !collapsed
+    setCollapsed(next)
+    try {
+      localStorage.setItem(COLLAPSED_KEY, next ? '1' : '0')
+    } catch {
+      // sin persistencia si el storage no está disponible, no pasa nada
     }
-    setPendingImport(result.config)
   }
 
   return (
-    <nav className="sidebar">
+    <nav className={`sidebar${collapsed ? ' collapsed' : ''}`}>
       <div className="sidebar-title">
-        <span>MultiToolApp</span>
+        {!collapsed && <span>MultiToolApp</span>}
         <button
           className="theme-toggle"
           onClick={onToggleTema}
@@ -81,37 +82,42 @@ export function Sidebar({ selected, onSelect, tema, onToggleTema, onExport, onIm
             key={f.id}
             className={`sidebar-button${f.id === selected ? ' active' : ''}`}
             onClick={() => onSelect(f.id)}
+            title={collapsed ? f.label : undefined}
           >
             <span className="sidebar-icon">{f.icon}</span>
-            <span>{f.label}</span>
+            {!collapsed && <span>{f.label}</span>}
           </button>
         ))}
       </div>
       <div className="sidebar-footer">
-        {importError && <div className="sidebar-error">{importError}</div>}
-        <button className="sidebar-button" onClick={handleImport}>
+        <button
+          className="sidebar-button"
+          onClick={() => setShowSettings(true)}
+          title={collapsed ? 'Configuración' : undefined}
+        >
           <span className="sidebar-icon">
-            <IconUpload size={17} />
+            <IconSettings size={17} />
           </span>
-          <span>Importar</span>
+          {!collapsed && <span>Configuración</span>}
         </button>
-        <button className="sidebar-button" onClick={handleExport}>
+        <button
+          className="sidebar-button"
+          onClick={toggleCollapsed}
+          title={collapsed ? 'Expandir' : 'Colapsar'}
+        >
           <span className="sidebar-icon">
-            <IconDownload size={17} />
+            {collapsed ? <IconChevronRight size={17} /> : <IconChevronLeft size={17} />}
           </span>
-          <span>{exportDone ? '¡Guardado!' : 'Exportar'}</span>
+          {!collapsed && <span>Colapsar</span>}
         </button>
       </div>
 
-      {pendingImport && (
-        <ConfirmDialog
-          message="Esto va a reemplazar toda tu configuración actual (perfiles, botones y APIs) por la del archivo importado. ¿Continuar?"
-          confirmLabel="Importar"
-          onCancel={() => setPendingImport(null)}
-          onConfirm={() => {
-            onApplyImport(pendingImport)
-            setPendingImport(null)
-          }}
+      {showSettings && (
+        <SettingsModal
+          onClose={() => setShowSettings(false)}
+          onExport={onExport}
+          onImport={onImport}
+          onApplyImport={onApplyImport}
         />
       )}
     </nav>

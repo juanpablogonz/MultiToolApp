@@ -22,6 +22,7 @@ export interface TerminalButton {
   ruta: string
   consola: TerminalKind
   comoAdministrador: boolean
+  solucionPath: string // .sln/.slnx opcional, para "Abrir proyecto"
   actualizado: string // ISO date
 }
 
@@ -87,3 +88,5 @@ export type FeatureId = (typeof FEATURE_IDS)[number]
 export type BackupImportResult = { ok: true; config: AppConfig } | { ok: false; error: string }
 
 export type TerminalOpenResult = { ok: true } | { ok: false; error: string }
+
+export type ShellOpenResult = { ok: true } | { ok: false; error: string }

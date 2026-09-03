@@ -5,6 +5,7 @@ import type {
   ApiLogLine,
   ApiRuntimeStatus,
   BackupImportResult,
+  ShellOpenResult,
   TerminalKind,
   TerminalOpenResult
 } from '@shared/types'
@@ -25,11 +26,21 @@ const api = {
     pickCsproj: (): Promise<string | null> => ipcRenderer.invoke('dialog:pickCsproj'),
     pickJsonFile: (): Promise<{ path: string; content: string } | null> =>
       ipcRenderer.invoke('dialog:pickJsonFile'),
-    pickFolder: (): Promise<string | null> => ipcRenderer.invoke('dialog:pickFolder')
+    pickFolder: (): Promise<string | null> => ipcRenderer.invoke('dialog:pickFolder'),
+    pickSolutionFile: (): Promise<string | null> => ipcRenderer.invoke('dialog:pickSolutionFile')
   },
   terminalLauncher: {
     open: (path: string, kind: TerminalKind, comoAdministrador: boolean): Promise<TerminalOpenResult> =>
       ipcRenderer.invoke('terminalLauncher:open', path, kind, comoAdministrador)
+  },
+  shell: {
+    openPath: (path: string): Promise<ShellOpenResult> => ipcRenderer.invoke('shell:openPath', path)
+  },
+  app: {
+    getVersion: (): Promise<string> => ipcRenderer.invoke('app:getVersion'),
+    checkForUpdates: (): Promise<boolean> => ipcRenderer.invoke('app:checkForUpdates'),
+    getAutoLaunch: (): Promise<boolean> => ipcRenderer.invoke('app:getAutoLaunch'),
+    setAutoLaunch: (enabled: boolean): Promise<boolean> => ipcRenderer.invoke('app:setAutoLaunch', enabled)
   },
   apiLauncher: {
     start: (entry: ApiEntry): Promise<ApiRuntimeStatus> => ipcRenderer.invoke('apiLauncher:start', entry),

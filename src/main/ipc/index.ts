@@ -1,10 +1,11 @@
-import { ipcMain, BrowserWindow, clipboard, dialog } from 'electron'
+import { app, ipcMain, BrowserWindow, clipboard, dialog, shell } from 'electron'
 import { promises as fs } from 'fs'
 import type { AppConfig, ApiEntry, BackupImportResult, TerminalKind } from '@shared/types'
 import { createDefaultConfig } from '@shared/defaultConfig'
 import { loadConfig, saveConfig } from '../config/settingsService'
 import { startApi, stopApi, stopAll, getAllStatuses } from '../features/apiLauncher/processManager'
 import { openTerminalAt } from '../features/terminalLauncher/terminalRunner'
+import { checkForUpdates } from '../updater'
 
 function backupFileName(): string {
   const now = new Date()
@@ -139,12 +140,42 @@ export function registerIpcHandlers(getMainWindow: () => BrowserWindow | null): 
     return result.filePaths[0]
   })
 
+  ipcMain.handle('dialog:pickSolutionFile', async () => {
+    const win = getMainWindow()
+    if (!win) return null
+    const result = await dialog.showOpenDialog(win, {
+      properties: ['openFile'],
+      filters: [{ name: 'Solución de Visual Studio', extensions: ['sln', 'slnx'] }]
+    })
+    if (result.canceled || result.filePaths.length === 0) return null
+    return result.filePaths[0]
+  })
+
   ipcMain.handle(
     'terminalLauncher:open',
     async (_event, path: string, kind: TerminalKind, comoAdministrador: boolean) => {
       return openTerminalAt(path, kind, comoAdministrador)
     }
   )
+
+  ipcMain.handle('shell:openPath', async (_event, path: string) => {
+    const error = await shell.openPath(path)
+    return error === '' ? { ok: true } : { ok: false, error }
+  })
+
+  ipcMain.handle('app:getVersion', () => app.getVersion())
+
+  ipcMain.handle('app:checkForUpdates', () => {
+    checkForUpdates()
+    return true
+  })
+
+  ipcMain.handle('app:getAutoLaunch', () => app.getLoginItemSettings().openAtLogin)
+
+  ipcMain.handle('app:setAutoLaunch', (_event, enabled: boolean) => {
+    app.setLoginItemSettings({ openAtLogin: enabled })
+    return true
+  })
 }
 
 export function shutdownAllProcesses(): void {

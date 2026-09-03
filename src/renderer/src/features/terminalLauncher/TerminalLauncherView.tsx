@@ -4,7 +4,7 @@ import { useConfig } from '../../config/ConfigContext'
 import { FeaturePage } from '../../shell/FeaturePage'
 import { ConfirmDialog } from '../../shell/ConfirmDialog'
 import { ContextMenu, type ContextMenuItem } from '../../shell/ContextMenu'
-import { IconFolder, IconPencil, IconStar, IconTrash } from '../../shell/Icons'
+import { IconFileCode, IconFolder, IconPencil, IconStar, IconTrash } from '../../shell/Icons'
 import { useToast } from '../../shell/ToastContext'
 
 const KIND_LABELS: Record<TerminalKind, string> = {
@@ -22,6 +22,7 @@ function newButton(): TerminalButton {
     ruta: '',
     consola: 'gitbash',
     comoAdministrador: false,
+    solucionPath: '',
     actualizado: new Date().toISOString()
   }
 }
@@ -153,17 +154,45 @@ export function TerminalLauncherView() {
     setEditing({ ...editing, ruta: folder })
   }
 
+  async function pickSolutionForEditing(): Promise<void> {
+    if (!editing) return
+    const file = await window.multiToolApp.dialog.pickSolutionFile()
+    if (!file) return
+    setEditing({ ...editing, solucionPath: file })
+  }
+
+  async function openProject(b: TerminalButton): Promise<void> {
+    if (!b.solucionPath) {
+      showToast('Este botón no tiene un archivo .sln/.slnx configurado')
+      return
+    }
+    const result = await window.multiToolApp.shell.openPath(b.solucionPath)
+    if (!result.ok) showToast(result.error)
+  }
+
+  async function openFolder(b: TerminalButton): Promise<void> {
+    const result = await window.multiToolApp.shell.openPath(b.ruta)
+    if (!result.ok) showToast(result.error)
+  }
+
   function openButtonMenu(e: ReactMouseEvent, b: TerminalButton): void {
     e.preventDefault()
     setMenu({
       x: e.clientX,
       y: e.clientY,
       items: [
+        { label: 'Abrir proyecto', icon: <IconFileCode size={14} />, onClick: () => openProject(b) },
+        { label: 'Abrir carpeta', icon: <IconFolder size={14} />, onClick: () => openFolder(b) },
         {
           label: 'Editar',
           icon: <IconPencil size={14} />,
           onClick: () =>
-            setEditing({ ...b, consola: b.consola ?? 'gitbash', comoAdministrador: b.comoAdministrador ?? false })
+            setEditing({
+              ...b,
+              consola: b.consola ?? 'gitbash',
+              comoAdministrador: b.comoAdministrador ?? false,
+              solucionPath: b.solucionPath ?? ''
+            })
         },
         {
           label: 'Eliminar',
@@ -300,6 +329,20 @@ export function TerminalLauncherView() {
                 />
                 <button onClick={pickFolderForEditing} type="button">
                   <IconFolder size={14} />
+                  Examinar
+                </button>
+              </div>
+            </label>
+            <label>
+              Solución (.sln/.slnx) — opcional, para "Abrir proyecto"
+              <div className="input-with-button">
+                <input
+                  value={editing.solucionPath}
+                  placeholder="C:\ruta\a\la\solucion.sln"
+                  onChange={(e) => setEditing({ ...editing, solucionPath: e.target.value })}
+                />
+                <button onClick={pickSolutionForEditing} type="button">
+                  <IconFileCode size={14} />
                   Examinar
                 </button>
               </div>

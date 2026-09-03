@@ -166,6 +166,42 @@ export function IconFolder(props: IconProps) {
   )
 }
 
+export function IconSettings(props: IconProps) {
+  return (
+    <svg {...base(props)}>
+      <circle cx="12" cy="12" r="2.8" />
+      <path d="M19.4 14.5a1.5 1.5 0 0 0 .3 1.65l.05.06a1.8 1.8 0 1 1-2.55 2.55l-.06-.05a1.5 1.5 0 0 0-1.65-.3 1.5 1.5 0 0 0-.9 1.37V20a1.8 1.8 0 0 1-3.6 0v-.08a1.5 1.5 0 0 0-1-1.4 1.5 1.5 0 0 0-1.64.3l-.06.05a1.8 1.8 0 1 1-2.55-2.55l.05-.06a1.5 1.5 0 0 0 .3-1.65 1.5 1.5 0 0 0-1.37-.9H4a1.8 1.8 0 0 1 0-3.6h.08a1.5 1.5 0 0 0 1.4-1 1.5 1.5 0 0 0-.3-1.64l-.05-.06A1.8 1.8 0 1 1 7.68 4.9l.06.05a1.5 1.5 0 0 0 1.65.3H9.5a1.5 1.5 0 0 0 .9-1.37V3.6a1.8 1.8 0 0 1 3.6 0v.08a1.5 1.5 0 0 0 .9 1.37 1.5 1.5 0 0 0 1.65-.3l.06-.05a1.8 1.8 0 1 1 2.55 2.55l-.05.06a1.5 1.5 0 0 0-.3 1.64v.09a1.5 1.5 0 0 0 1.37.9H20a1.8 1.8 0 0 1 0 3.6h-.08a1.5 1.5 0 0 0-1.37.9Z" />
+    </svg>
+  )
+}
+
+export function IconRefresh(props: IconProps) {
+  return (
+    <svg {...base(props)}>
+      <path d="M4.5 12a7.5 7.5 0 0 1 12.6-5.5" />
+      <path d="M17.5 4.5v3.6h-3.6" />
+      <path d="M19.5 12a7.5 7.5 0 0 1-12.6 5.5" />
+      <path d="M6.5 19.5v-3.6h3.6" />
+    </svg>
+  )
+}
+
+export function IconChevronLeft(props: IconProps) {
+  return (
+    <svg {...base(props)}>
+      <path d="M15 4.5 7.5 12l7.5 7.5" />
+    </svg>
+  )
+}
+
+export function IconChevronRight(props: IconProps) {
+  return (
+    <svg {...base(props)}>
+      <path d="M9 4.5 16.5 12 9 19.5" />
+    </svg>
+  )
+}
+
 export function IconMoon(props: IconProps) {
   return (
     <svg {...base(props)} fill="currentColor" stroke="none">

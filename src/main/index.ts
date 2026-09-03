@@ -33,7 +33,7 @@ if (!gotLock) {
       minHeight: 560,
       show: false,
       autoHideMenuBar: true,
-      title: 'MultiToolApp — Version 1.0.0',
+      title: 'MultiToolApp',
       icon: getIconPath(),
       webPreferences: {
         preload: join(__dirname, '../preload/index.js'),
