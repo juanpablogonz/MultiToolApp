@@ -1,6 +1,6 @@
 {
   "name": "multitoolapp",
-  "version": "1.0.4",
+  "version": "1.0.5",
   "description": "MultiToolApp - caja de herramientas de escritorio: copiar con un click, formatear texto, comparar texto y lanzar APIs para debug.",
   "main": "./out/main/index.js",
   "author": "",
