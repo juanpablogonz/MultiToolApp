@@ -10,10 +10,11 @@ import { useToast } from '../../shell/ToastContext'
 const KIND_LABELS: Record<TerminalKind, string> = {
   gitbash: 'Git Bash',
   cmd: 'CMD',
-  powershell: 'PowerShell'
+  powershell: 'PowerShell',
+  vscode: 'VS Code'
 }
 
-const KIND_OPTIONS: TerminalKind[] = ['gitbash', 'cmd', 'powershell']
+const KIND_OPTIONS: TerminalKind[] = ['gitbash', 'cmd', 'powershell', 'vscode']
 
 function newButton(): TerminalButton {
   return {
@@ -69,7 +70,7 @@ export function TerminalLauncherView() {
       b.consola ?? 'gitbash',
       b.comoAdministrador ?? false
     )
-    if (!result.ok) showToast(result.error)
+    if (!result.ok) showToast(result.error, 'error')
   }
 
   function addProfile(): void {
@@ -163,16 +164,16 @@ export function TerminalLauncherView() {
 
   async function openProject(b: TerminalButton): Promise<void> {
     if (!b.solucionPath) {
-      showToast('Este botón no tiene un archivo .sln/.slnx configurado')
+      showToast('Este botón no tiene un archivo .sln/.slnx configurado', 'error')
       return
     }
     const result = await window.multiToolApp.shell.openPath(b.solucionPath)
-    if (!result.ok) showToast(result.error)
+    if (!result.ok) showToast(result.error, 'error')
   }
 
   async function openFolder(b: TerminalButton): Promise<void> {
     const result = await window.multiToolApp.shell.openPath(b.ruta)
-    if (!result.ok) showToast(result.error)
+    if (!result.ok) showToast(result.error, 'error')
   }
 
   function openButtonMenu(e: ReactMouseEvent, b: TerminalButton): void {
@@ -181,7 +182,9 @@ export function TerminalLauncherView() {
       x: e.clientX,
       y: e.clientY,
       items: [
-        { label: 'Abrir proyecto', icon: <IconFileCode size={14} />, onClick: () => openProject(b) },
+        ...(b.solucionPath
+          ? [{ label: 'Abrir proyecto', icon: <IconFileCode size={14} />, onClick: () => openProject(b) }]
+          : []),
         { label: 'Abrir carpeta', icon: <IconFolder size={14} />, onClick: () => openFolder(b) },
         {
           label: 'Editar',
@@ -348,7 +351,7 @@ export function TerminalLauncherView() {
               </div>
             </label>
             <label>
-              Consola
+              Abrir con
               <div className="radio-group">
                 {KIND_OPTIONS.map((kind) => (
                   <label key={kind} className="radio-option">

@@ -103,12 +103,12 @@ export function Sidebar({ selected, onSelect, tema, onToggleTema, onExport, onIm
         <button
           className="sidebar-button"
           onClick={toggleCollapsed}
-          title={collapsed ? 'Expandir' : 'Colapsar'}
+          title={collapsed ? 'Expandir' : 'Contraer'}
         >
           <span className="sidebar-icon">
             {collapsed ? <IconChevronRight size={17} /> : <IconChevronLeft size={17} />}
           </span>
-          {!collapsed && <span>Colapsar</span>}
+          {!collapsed && <span>Contraer</span>}
         </button>
       </div>
 

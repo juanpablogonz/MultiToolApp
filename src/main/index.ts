@@ -58,6 +58,11 @@ if (!gotLock) {
       return { action: 'deny' }
     })
 
+    // "Buscar actualizaciones" solo tiene sentido con la ventana abierta (ahí se ven
+    // los diálogos de resultado); si está minimizada a la bandeja, la sacamos del menú.
+    mainWindow.on('show', updateTrayMenu)
+    mainWindow.on('hide', updateTrayMenu)
+
     if (!app.isPackaged && process.env['ELECTRON_RENDERER_URL']) {
       mainWindow.loadURL(process.env['ELECTRON_RENDERER_URL'])
     } else {
@@ -65,33 +70,42 @@ if (!gotLock) {
     }
   }
 
+  function buildTrayMenu(): Menu {
+    const items: Electron.MenuItemConstructorOptions[] = [
+      {
+        label: 'Abrir MultiToolApp',
+        click: () => {
+          mainWindow?.show()
+          mainWindow?.focus()
+        }
+      },
+      { type: 'separator' }
+    ]
+
+    if (mainWindow?.isVisible()) {
+      items.push({ label: 'Buscar actualizaciones', click: () => checkForUpdates() }, { type: 'separator' })
+    }
+
+    items.push({
+      label: 'Cerrar',
+      click: () => {
+        isQuitting = true
+        app.quit()
+      }
+    })
+
+    return Menu.buildFromTemplate(items)
+  }
+
+  function updateTrayMenu(): void {
+    tray?.setContextMenu(buildTrayMenu())
+  }
+
   function createTray(): void {
     const icon = nativeImage.createFromPath(getIconPath())
     tray = new Tray(icon.resize({ width: 16, height: 16 }))
     tray.setToolTip('MultiToolApp')
-    tray.setContextMenu(
-      Menu.buildFromTemplate([
-        {
-          label: 'Abrir MultiToolApp',
-          click: () => {
-            mainWindow?.show()
-            mainWindow?.focus()
-          }
-        },
-        { type: 'separator' },
-        {
-          label: 'Buscar actualizaciones',
-          click: () => checkForUpdates()
-        },
-        {
-          label: 'Cerrar',
-          click: () => {
-            isQuitting = true
-            app.quit()
-          }
-        }
-      ])
-    )
+    updateTrayMenu()
     tray.on('click', () => {
       if (!mainWindow) return
       if (mainWindow.isVisible()) {

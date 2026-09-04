@@ -14,7 +14,7 @@ export interface CopyProfile {
   botones: CopyButton[]
 }
 
-export type TerminalKind = 'gitbash' | 'cmd' | 'powershell'
+export type TerminalKind = 'gitbash' | 'cmd' | 'powershell' | 'vscode'
 
 export interface TerminalButton {
   id: string

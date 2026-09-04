@@ -7,6 +7,7 @@ import type { TerminalKind, TerminalOpenResult } from '@shared/types'
 const execAsync = promisify(exec)
 
 let cachedGitBashPath: string | null | undefined
+let cachedVsCodePath: string | null | undefined
 
 // Lee el mismo comando que usa el menú contextual de Windows ("Git Bash Here"),
 // así encontramos git-bash.exe sin importar dónde lo haya instalado el usuario.
@@ -46,6 +47,31 @@ async function findGitBashExe(): Promise<string | null> {
   return null
 }
 
+async function findVsCodeExe(): Promise<string | null> {
+  if (cachedVsCodePath !== undefined) return cachedVsCodePath
+
+  // El instalador de VS Code para Windows por defecto instala por usuario (LOCALAPPDATA);
+  // "Program Files" cubre el caso de una instalación para toda la máquina.
+  const candidates = [
+    `${process.env.LOCALAPPDATA}\\Programs\\Microsoft VS Code\\Code.exe`,
+    `${process.env.ProgramFiles}\\Microsoft VS Code\\Code.exe`,
+    `${process.env['ProgramFiles(x86)']}\\Microsoft VS Code\\Code.exe`
+  ]
+
+  for (const candidate of candidates) {
+    try {
+      await access(candidate)
+      cachedVsCodePath = candidate
+      return candidate
+    } catch {
+      continue
+    }
+  }
+
+  cachedVsCodePath = null
+  return null
+}
+
 interface LaunchSpec {
   exe: string
   args: string[]
@@ -62,6 +88,13 @@ async function buildLaunchSpec(
       return { error: 'No se encontró Git Bash instalado. Instalá Git for Windows para usar este módulo.' }
     }
     return { exe: exePath, args: [`--cd=${path}`] }
+  }
+  if (kind === 'vscode') {
+    const exePath = await findVsCodeExe()
+    if (!exePath) {
+      return { error: 'No se encontró Visual Studio Code instalado.' }
+    }
+    return { exe: exePath, args: [path] }
   }
   // cmd.exe y powershell.exe son programas de consola: si heredan nuestro stdio
   // "ignore" (redirigido a NUL), leen EOF al toque y se cierran solos apenas abren.
@@ -139,7 +172,8 @@ export async function openTerminalAt(
   const path = targetPath.trim()
   if (!path) return { ok: false, error: 'Este botón no tiene una ruta configurada.' }
 
-  const safeKind: TerminalKind = kind === 'cmd' || kind === 'powershell' ? kind : 'gitbash'
+  const safeKind: TerminalKind =
+    kind === 'cmd' || kind === 'powershell' || kind === 'vscode' ? kind : 'gitbash'
 
   try {
     const info = await stat(path)
