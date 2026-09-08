@@ -1,9 +1,10 @@
-import { useEffect, useRef, useState } from 'react'
-import type { ApiEntry, ApiEnvironment, ApiLogLine, ApiRuntimeStatus } from '@shared/types'
+import { useEffect, useMemo, useRef, useState, type DragEvent, type MouseEvent as ReactMouseEvent } from 'react'
+import type { ApiEntry, ApiEnvironment, ApiLogLine, ApiProfile, ApiRuntimeStatus } from '@shared/types'
 import { useConfig } from '../../config/ConfigContext'
 import { FeaturePage } from '../../shell/FeaturePage'
 import { ConfirmDialog } from '../../shell/ConfirmDialog'
-import { IconPencil, IconPlay, IconStop, IconTrash } from '../../shell/Icons'
+import { ContextMenu, type ContextMenuItem } from '../../shell/ContextMenu'
+import { IconPencil, IconPlay, IconStar, IconStop, IconTrash } from '../../shell/Icons'
 
 const ENV_OPTIONS: { value: ApiEnvironment; label: string }[] = [
   { value: 'develop', label: 'Develop' },
@@ -23,6 +24,16 @@ function newApi(): ApiEntry {
   }
 }
 
+function newProfile(nombre: string): ApiProfile {
+  return { id: crypto.randomUUID(), nombre, principal: false, apis: [] }
+}
+
+function orderProfiles(perfiles: ApiProfile[]): ApiProfile[] {
+  const principal = perfiles.find((p) => p.principal)
+  const resto = perfiles.filter((p) => !p.principal)
+  return principal ? [principal, ...resto] : resto
+}
+
 function envToText(env: Record<string, string>): string {
   return Object.entries(env)
     .map(([k, v]) => `${k}=${v}`)
@@ -39,6 +50,12 @@ function textToEnv(text: string): Record<string, string> {
   return env
 }
 
+interface MenuState {
+  x: number
+  y: number
+  items: ContextMenuItem[]
+}
+
 export function ApiLauncherView() {
   const { config, updateConfig } = useConfig()
   const [statuses, setStatuses] = useState<Record<string, ApiRuntimeStatus>>({})
@@ -47,9 +64,23 @@ export function ApiLauncherView() {
   const [editing, setEditing] = useState<ApiEntry | null>(null)
   const [envText, setEnvText] = useState('')
   const [pendingDelete, setPendingDelete] = useState<{ message: string; action: () => void } | null>(null)
+  const [activeProfileId, setActiveProfileId] = useState<string | null>(null)
+  const [editingProfile, setEditingProfile] = useState<ApiProfile | null>(null)
+  const [menu, setMenu] = useState<MenuState | null>(null)
+  const [draggingId, setDraggingId] = useState<string | null>(null)
+  const [dragOverId, setDragOverId] = useState<string | null>(null)
   const logEndRef = useRef<HTMLDivElement | null>(null)
 
-  const apis = config?.apiLauncher.apis ?? []
+  const perfilesOrdenados = useMemo(
+    () => orderProfiles(config?.apiLauncher.perfiles ?? []),
+    [config]
+  )
+  const activeProfile = useMemo(
+    () => perfilesOrdenados.find((p) => p.id === activeProfileId) ?? perfilesOrdenados[0] ?? null,
+    [perfilesOrdenados, activeProfileId]
+  )
+  const apis = activeProfile?.apis ?? []
+  const allApiIds = useMemo(() => perfilesOrdenados.flatMap((p) => p.apis.map((a) => a.id)), [perfilesOrdenados])
 
   useEffect(() => {
     const offLog = window.multiToolApp.apiLauncher.onLog((line) => {
@@ -68,8 +99,8 @@ export function ApiLauncherView() {
   }, [])
 
   useEffect(() => {
-    if (apis.length === 0) return
-    window.multiToolApp.apiLauncher.statusAll(apis.map((a) => a.id)).then((list) => {
+    if (allApiIds.length === 0) return
+    window.multiToolApp.apiLauncher.statusAll(allApiIds).then((list) => {
       setStatuses((prev) => {
         const next = { ...prev }
         for (const s of list) next[s.id] = s
@@ -77,7 +108,7 @@ export function ApiLauncherView() {
       })
     })
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [apis.length])
+  }, [allApiIds.length])
 
   useEffect(() => {
     logEndRef.current?.scrollIntoView({ block: 'end' })
@@ -103,19 +134,53 @@ export function ApiLauncherView() {
     }
   }
 
-  function toggleHabilitada(id: string): void {
-    updateConfig((draft) => ({
-      ...draft,
-      apiLauncher: {
-        apis: draft.apiLauncher.apis.map((a) => (a.id === id ? { ...a, habilitada: !a.habilitada } : a))
-      }
-    }))
-  }
-
   async function stopAll(): Promise<void> {
     for (const api of apis) {
       if (isRunning(api.id)) await stop(api.id)
     }
+  }
+
+  function toggleHabilitada(id: string): void {
+    if (!activeProfile) return
+    updateConfig((draft) => ({
+      ...draft,
+      apiLauncher: {
+        perfiles: draft.apiLauncher.perfiles.map((p) =>
+          p.id !== activeProfile.id
+            ? p
+            : { ...p, apis: p.apis.map((a) => (a.id === id ? { ...a, habilitada: !a.habilitada } : a)) }
+        )
+      }
+    }))
+  }
+
+  function addProfile(): void {
+    const nombre = `Perfil ${perfilesOrdenados.length + 1}`
+    updateConfig((draft) => ({
+      ...draft,
+      apiLauncher: { perfiles: [...draft.apiLauncher.perfiles, newProfile(nombre)] }
+    }))
+  }
+
+  function removeProfile(id: string): void {
+    if (perfilesOrdenados.length <= 1) return
+    updateConfig((draft) => ({
+      ...draft,
+      apiLauncher: { perfiles: draft.apiLauncher.perfiles.filter((p) => p.id !== id) }
+    }))
+  }
+
+  function saveProfile(updated: ApiProfile): void {
+    updateConfig((draft) => {
+      const perfiles = draft.apiLauncher.perfiles.map((p) => {
+        if (p.id === updated.id) return updated
+        // solo puede haber un perfil principal a la vez
+        if (updated.principal && p.principal) return { ...p, principal: false }
+        return p
+      })
+      return { ...draft, apiLauncher: { perfiles } }
+    })
+    setEditingProfile(null)
   }
 
   function openNew(): void {
@@ -136,36 +201,106 @@ export function ApiLauncherView() {
   }
 
   function saveApi(): void {
-    if (!editing) return
+    if (!editing || !activeProfile) return
     const api: ApiEntry = { ...editing, variablesEntorno: textToEnv(envText) }
-    updateConfig((draft) => {
-      const exists = draft.apiLauncher.apis.some((a) => a.id === api.id)
-      return {
-        ...draft,
-        apiLauncher: {
-          apis: exists
-            ? draft.apiLauncher.apis.map((a) => (a.id === api.id ? api : a))
-            : [...draft.apiLauncher.apis, api]
-        }
+    updateConfig((draft) => ({
+      ...draft,
+      apiLauncher: {
+        perfiles: draft.apiLauncher.perfiles.map((p) => {
+          if (p.id !== activeProfile.id) return p
+          const exists = p.apis.some((a) => a.id === api.id)
+          return { ...p, apis: exists ? p.apis.map((a) => (a.id === api.id ? api : a)) : [...p.apis, api] }
+        })
       }
-    })
+    }))
     setEditing(null)
   }
 
   function deleteApi(id: string): void {
+    if (!activeProfile) return
     updateConfig((draft) => ({
       ...draft,
-      apiLauncher: { apis: draft.apiLauncher.apis.filter((a) => a.id !== id) }
+      apiLauncher: {
+        perfiles: draft.apiLauncher.perfiles.map((p) =>
+          p.id !== activeProfile.id ? p : { ...p, apis: p.apis.filter((a) => a.id !== id) }
+        )
+      }
     }))
   }
+
+  function openProfileMenu(e: ReactMouseEvent, p: ApiProfile): void {
+    e.preventDefault()
+    e.stopPropagation()
+    const items: ContextMenuItem[] = [
+      { label: 'Editar perfil', icon: <IconPencil size={14} />, onClick: () => setEditingProfile(p) }
+    ]
+    if (perfilesOrdenados.length > 1) {
+      items.push({
+        label: 'Eliminar perfil',
+        icon: <IconTrash size={14} />,
+        danger: true,
+        onClick: () =>
+          setPendingDelete({
+            message: `¿Eliminar el perfil "${p.nombre}" y todas sus APIs?`,
+            action: () => removeProfile(p.id)
+          })
+      })
+    }
+    setMenu({ x: e.clientX, y: e.clientY, items })
+  }
+
+  function handleTabDragStart(p: ApiProfile): void {
+    if (p.principal) return
+    setDraggingId(p.id)
+  }
+
+  function handleTabDragOver(e: DragEvent, target: ApiProfile): void {
+    if (!draggingId || target.principal) return
+    e.preventDefault()
+    setDragOverId(target.id)
+    if (draggingId === target.id) return
+    updateConfig((draft) => {
+      const list = [...draft.apiLauncher.perfiles]
+      const from = list.findIndex((p) => p.id === draggingId)
+      const to = list.findIndex((p) => p.id === target.id)
+      if (from === -1 || to === -1 || from === to) return draft
+      const [moved] = list.splice(from, 1)
+      list.splice(to, 0, moved)
+      return { ...draft, apiLauncher: { perfiles: list } }
+    })
+  }
+
+  function handleTabDragEnd(): void {
+    setDraggingId(null)
+    setDragOverId(null)
+  }
+
+  if (!config || !activeProfile) return <FeaturePage submenu={null}>Cargando...</FeaturePage>
 
   return (
     <FeaturePage
       submenu={
         <>
-          <span className="submenu-label">APIs</span>
-          <button className="submenu-tab submenu-tab-add" onClick={openNew}>
-            + Nueva API
+          {perfilesOrdenados.map((p) => (
+            <button
+              key={p.id}
+              draggable={!p.principal}
+              onDragStart={() => handleTabDragStart(p)}
+              onDragOver={(e) => handleTabDragOver(e, p)}
+              onDragEnd={handleTabDragEnd}
+              onDrop={(e) => e.preventDefault()}
+              className={`submenu-tab${p.id === activeProfile.id ? ' active' : ''}${
+                draggingId === p.id ? ' dragging' : ''
+              }${dragOverId === p.id && draggingId !== p.id ? ' drag-over' : ''}`}
+              onClick={() => setActiveProfileId(p.id)}
+              onContextMenu={(e) => openProfileMenu(e, p)}
+            >
+              {p.principal && <IconStar size={13} />}
+              {p.nombre}
+            </button>
+          ))}
+          <button className="submenu-tab submenu-tab-add" onClick={addProfile}>
+            + Perfil
           </button>
         </>
       }
@@ -177,6 +312,7 @@ export function ApiLauncherView() {
         <button onClick={stopAll}>
           <IconStop size={14} /> Detener todas
         </button>
+        <button onClick={openNew}>+ Nueva API</button>
       </div>
 
       <div className="api-list">
@@ -297,6 +433,36 @@ export function ApiLauncherView() {
         </div>
       )}
 
+      {editingProfile && (
+        <div className="modal-backdrop">
+          <div className="modal">
+            <h3>Editar perfil</h3>
+            <label>
+              Nombre (máx. 20 caracteres)
+              <input
+                value={editingProfile.nombre}
+                maxLength={20}
+                onChange={(e) => setEditingProfile({ ...editingProfile, nombre: e.target.value })}
+              />
+            </label>
+            <label className="checkbox">
+              <input
+                type="checkbox"
+                checked={editingProfile.principal}
+                onChange={(e) => setEditingProfile({ ...editingProfile, principal: e.target.checked })}
+              />
+              Perfil principal (aparece siempre primero)
+            </label>
+            <div className="modal-actions">
+              <button onClick={() => setEditingProfile(null)}>Cancelar</button>
+              <button className="primary" onClick={() => saveProfile(editingProfile)}>
+                Guardar
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {pendingDelete && (
         <ConfirmDialog
           message={pendingDelete.message}
@@ -307,6 +473,8 @@ export function ApiLauncherView() {
           }}
         />
       )}
+
+      {menu && <ContextMenu x={menu.x} y={menu.y} items={menu.items} onClose={() => setMenu(null)} />}
     </FeaturePage>
   )
 }

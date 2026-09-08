@@ -3,6 +3,7 @@ import { promises as fs } from 'fs'
 import type { AppConfig, ApiEntry, BackupImportResult, TerminalKind } from '@shared/types'
 import { createDefaultConfig } from '@shared/defaultConfig'
 import { loadConfig, saveConfig } from '../config/settingsService'
+import { migrateApiLauncher } from '../config/migrations'
 import { startApi, stopApi, stopAll, getAllStatuses } from '../features/apiLauncher/processManager'
 import { openTerminalAt } from '../features/terminalLauncher/terminalRunner'
 import { checkForUpdates } from '../updater'
@@ -20,10 +21,8 @@ function isValidAppConfig(data: unknown): data is AppConfig {
   if (d.tema !== 'claro' && d.tema !== 'oscuro') return false
   const copyPaste = d.copyPaste as Record<string, unknown> | undefined
   if (typeof copyPaste !== 'object' || copyPaste === null || !Array.isArray(copyPaste.perfiles)) return false
-  const apiLauncher = d.apiLauncher as Record<string, unknown> | undefined
-  if (typeof apiLauncher !== 'object' || apiLauncher === null || !Array.isArray(apiLauncher.apis)) return false
-  // terminalLauncher es opcional acá: backups viejos (de antes de este módulo) no lo tienen,
-  // y se completa con el valor por defecto en el handler de import.
+  // apiLauncher y terminalLauncher son laxos acá: backups viejos tienen formatos
+  // distintos (o directamente no existen), y se normalizan en el handler de import.
   return true
 }
 
@@ -97,7 +96,8 @@ export function registerIpcHandlers(getMainWindow: () => BrowserWindow | null): 
 
     const config: AppConfig = {
       ...data,
-      terminalLauncher: data.terminalLauncher ?? createDefaultConfig().terminalLauncher
+      terminalLauncher: data.terminalLauncher ?? createDefaultConfig().terminalLauncher,
+      apiLauncher: migrateApiLauncher(data.apiLauncher)
     }
 
     return { ok: true, config }

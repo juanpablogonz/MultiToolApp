@@ -5,6 +5,7 @@ import { FeaturePage } from '../../shell/FeaturePage'
 import { useConfig } from '../../config/ConfigContext'
 import { useClipboard } from '../../shell/useClipboard'
 import { formatXml, minifyXml, validateXml } from './xmlFormat'
+import { deepParseJsonStrings } from './jsonClean'
 
 type Lang = 'json' | 'xml'
 
@@ -60,6 +61,17 @@ export function FormatterView() {
     }
   }
 
+  function limpiarAnidados(): void {
+    setError(null)
+    if (!value.trim()) return
+    try {
+      const parsed = JSON.parse(value)
+      applyResult(JSON.stringify(deepParseJsonStrings(parsed), null, 2))
+    } catch {
+      setError('El formato no es válido')
+    }
+  }
+
   function copiar(): void {
     copy(value)
   }
@@ -85,6 +97,11 @@ export function FormatterView() {
       <div className="toolbar">
         <button onClick={formatear}>Formatear</button>
         <button onClick={minificar}>Minificar</button>
+        {lang === 'json' && (
+          <button onClick={limpiarAnidados} title="Convierte los strings que son JSON escapado (ej: &quot;response&quot;) en objetos/arrays de verdad">
+            Desanidar JSON
+          </button>
+        )}
         <button onClick={copiar}>Copiar</button>
         <button onClick={limpiar}>Limpiar</button>
         {error && <span className="error-text">{error}</span>}

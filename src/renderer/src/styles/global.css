@@ -278,7 +278,7 @@ textarea {
 }
 
 .toolbar button,
-.modal button:not(.switch),
+.modal button,
 .api-actions button,
 .input-with-button button {
   display: inline-flex;
@@ -294,7 +294,7 @@ textarea {
 }
 
 .toolbar button:active,
-.modal button:not(.switch):active,
+.modal button:active,
 .api-actions button:active,
 .input-with-button button:active {
   transform: scale(0.95);
@@ -615,7 +615,7 @@ button.danger {
   opacity: 0.55;
 }
 
-.switch {
+button.switch {
   position: relative;
   width: 34px;
   height: 19px;

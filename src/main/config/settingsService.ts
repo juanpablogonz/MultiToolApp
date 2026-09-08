@@ -3,6 +3,7 @@ import { promises as fs } from 'fs'
 import { join } from 'path'
 import type { AppConfig } from '@shared/types'
 import { createDefaultConfig } from '@shared/defaultConfig'
+import { migrateApiLauncher } from './migrations'
 
 const CONFIG_FILE = 'config.json'
 
@@ -21,13 +22,16 @@ function getBackupPath(): string {
 let cache: AppConfig | null = null
 
 // Rellena con los valores por defecto los campos que falten en un config.json
-// guardado por una versión anterior de la app (ej: al agregar un módulo nuevo).
-function withMigrations(config: AppConfig): AppConfig {
+// guardado por una versión anterior de la app (ej: al agregar un módulo nuevo), y
+// convierte los formatos viejos de datos al formato actual.
+function withMigrations(rawConfig: unknown): AppConfig {
   const defaults = createDefaultConfig()
+  const raw = (rawConfig && typeof rawConfig === 'object' ? rawConfig : {}) as Partial<AppConfig>
   return {
     ...defaults,
-    ...config,
-    terminalLauncher: config.terminalLauncher ?? defaults.terminalLauncher
+    ...raw,
+    terminalLauncher: raw.terminalLauncher ?? defaults.terminalLauncher,
+    apiLauncher: migrateApiLauncher(raw.apiLauncher)
   }
 }
 
@@ -37,7 +41,7 @@ export async function loadConfig(): Promise<AppConfig> {
   const configPath = getConfigPath()
   try {
     const raw = await fs.readFile(configPath, 'utf-8')
-    cache = withMigrations(JSON.parse(raw) as AppConfig)
+    cache = withMigrations(JSON.parse(raw))
     return cache
   } catch (err: unknown) {
     const nodeErr = err as NodeJS.ErrnoException

@@ -45,6 +45,13 @@ export interface ApiEntry {
   entorno: ApiEnvironment
 }
 
+export interface ApiProfile {
+  id: string
+  nombre: string
+  principal: boolean
+  apis: ApiEntry[]
+}
+
 export type Tema = 'claro' | 'oscuro'
 
 export interface AppConfig {
@@ -53,7 +60,7 @@ export interface AppConfig {
     perfiles: CopyProfile[]
   }
   apiLauncher: {
-    apis: ApiEntry[]
+    perfiles: ApiProfile[]
   }
   terminalLauncher: {
     perfiles: TerminalProfile[]
